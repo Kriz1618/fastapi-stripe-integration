@@ -1,0 +1,20 @@
+# FastAPI básico
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Base de datos SQLite (incluido en Python)
+sqlalchemy==2.0.23
+
+# Stripe
+stripe==7.8.0
+
+# Autenticación básica
+passlib[bcrypt]==1.7.4
+
+# Variables de entorno
+python-dotenv==1.0.0
+
+# Validación de email
+email-validator==2.1.0
