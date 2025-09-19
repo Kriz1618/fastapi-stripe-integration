@@ -1,10 +1,11 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
-from sqlalchemy.orm import relationship
 from datetime import datetime
-from app.core.database import Base
-from passlib.context import CryptContext
 
-# Configuración para hash de passwords
+from passlib.context import CryptContext
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
+from sqlalchemy.orm import relationship
+
+from app.core.database import Base
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 

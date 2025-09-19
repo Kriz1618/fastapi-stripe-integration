@@ -3,9 +3,10 @@
 Simple script to run the FastAPI application locally
 """
 
-import uvicorn
-import sys
 import os
+import sys
+
+import uvicorn
 
 if __name__ == "__main__":
     # Change to project root directory
@@ -19,14 +20,10 @@ if __name__ == "__main__":
     print("🚀 Starting Stripe Integration POC...")
     print("📚 Documentation available at: http://localhost:8000/docs")
     print("🔍 Health check: http://localhost:8000/health")
-    print("👤 Users: http://localhost:8000/api/auth/")
+    print("👤 Users: http://localhost:8000/api/users/")
     print("💳 Stripe: http://localhost:8000/api/stripe/")
     print("\n💡 To stop the application press Ctrl+C\n")
 
     uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
+        "app.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info"
     )
