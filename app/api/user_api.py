@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr
 from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, EmailStr
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.services.user_service import user_service
@@ -9,15 +10,18 @@ from app.services.user_service import user_service
 # Router
 router = APIRouter()
 
+
 # Pydantic models for API requests/responses
 class UserCreate(BaseModel):
     email: EmailStr
     full_name: str
     password: str
 
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
 
 class UserResponse(BaseModel):
     id: int
@@ -28,6 +32,7 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -52,29 +57,22 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     try:
         # Use user service to register user
         db_user = user_service.register_user(
-            db=db,
-            email=user.email,
-            full_name=user.full_name,
-            password=user.password
+            db=db, email=user.email, full_name=user.full_name, password=user.password
         )
 
         return UserResponse.model_validate(db_user)
 
     except ValueError as e:
-        # Handle validation errors (e.g., email already exists)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as _:
         # Handle unexpected errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration failed"
+            detail="Registration failed",
         )
 
 
-@router.get("/users", response_model=list[UserResponse])
+@router.get("/", response_model=list[UserResponse])
 async def get_users(db: Session = Depends(get_db)):
     """
     Get all users (admin endpoint)
@@ -93,14 +91,14 @@ async def get_users(db: Session = Depends(get_db)):
         users = user_service.get_all_users(db)
         return [UserResponse.model_validate(user) for user in users]
 
-    except Exception as e:
+    except Exception as e:  # noqa: F841
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch users"
+            detail="Failed to fetch users",
         )
 
 
-@router.get("/users/{user_id}", response_model=UserResponse)
+@router.get("/{user_id}", response_model=UserResponse)
 async def get_user(user_id: int, db: Session = Depends(get_db)):
     """
     Get user by ID
@@ -120,23 +118,24 @@ async def get_user(user_id: int, db: Session = Depends(get_db)):
 
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
 
         return UserResponse.model_validate(user)
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception as e:  # noqa: F841
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch user"
+            detail="Failed to fetch user",
         )
 
 
-@router.put("/users/{user_id}", response_model=UserResponse)
-async def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)):
+@router.put("/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)
+):
     """
     Update user information
 
@@ -157,29 +156,28 @@ async def update_user(user_id: int, user_update: UserUpdate, db: Session = Depen
         if not update_data:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No fields provided for update"
+                detail="No fields provided for update",
             )
 
         updated_user = user_service.update_user(db, user_id, **update_data)
 
         if not updated_user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
 
         return UserResponse.model_validate(updated_user)
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception as e:  # noqa: F841
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update user"
+            detail="Failed to update user",
         )
 
 
-@router.delete("/users/{user_id}")
+@router.delete("/{user_id}")
 async def deactivate_user(user_id: int, db: Session = Depends(get_db)):
     """
     Deactivate user account
@@ -200,8 +198,7 @@ async def deactivate_user(user_id: int, db: Session = Depends(get_db)):
 
         if not success:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
 
         return {"message": f"User {user_id} deactivated successfully"}
@@ -209,8 +206,8 @@ async def deactivate_user(user_id: int, db: Session = Depends(get_db)):
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
-    except Exception as e:
+    except Exception as _:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to deactivate user"
+            detail="Failed to deactivate user",
         )

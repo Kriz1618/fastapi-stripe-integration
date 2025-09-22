@@ -1,7 +1,9 @@
-import stripe
-from typing import Optional, Dict, Any
-from app.core.config import settings
 import logging
+from typing import Any, Dict, List, Optional
+
+import stripe
+
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +24,7 @@ class StripeService:
         try:
             logger.info(f"Creating Stripe customer for: {email}")
 
-            customer = stripe.Customer.create(
-                email=email,
-                name=name
-            )
+            customer = stripe.Customer.create(email=email, name=name)
             logger.info(f"Created Stripe customer: {customer.id}")
             return customer.id
         except stripe.error.StripeError as e:
@@ -40,7 +39,7 @@ class StripeService:
         customer_id: str,
         price_id: str,
         success_url: str = None,
-        cancel_url: str = None
+        cancel_url: str = None,
     ) -> Dict[str, Any]:
         """Create checkout session for subscription"""
         try:
@@ -55,14 +54,11 @@ class StripeService:
                 ],
                 mode="subscription",
                 success_url=success_url or f"{settings.frontend_url}/success",
-                cancel_url=cancel_url or f"{settings.frontend_url}/cancel"
+                cancel_url=cancel_url or f"{settings.frontend_url}/cancel",
             )
 
             logger.info(f"Created checkout session: {session.id}")
-            return {
-                "session_id": session.id,
-                "url": session.url
-            }
+            return {"session_id": session.id, "url": session.url}
         except stripe.error.StripeError as e:
             logger.error(f"Error creating checkout session: {e}")
             raise Exception(f"Error creating checkout session: {str(e)}")
@@ -79,14 +75,14 @@ class StripeService:
             subscription_dict = subscription.to_dict_recursive()
 
             # Get items and periods from first item
-            items_data = subscription_dict.get('items', {}).get('data', [])
+            items_data = subscription_dict.get("items", {}).get("data", [])
             current_period_start = None
             current_period_end = None
 
             if items_data:
                 first_item = items_data[0]
-                current_period_start = first_item.get('current_period_start')
-                current_period_end = first_item.get('current_period_end')
+                current_period_start = first_item.get("current_period_start")
+                current_period_end = first_item.get("current_period_end")
 
             result = {
                 "id": subscription.id,
@@ -94,12 +90,10 @@ class StripeService:
                 "status": subscription.status,
                 "current_period_start": current_period_start,
                 "current_period_end": current_period_end,
-                "items": {
-                    "data": items_data
-                }
+                "items": {"data": items_data},
             }
 
-            logger.info(f"Subscription data prepared successfully")
+            logger.info("Subscription data prepared successfully")
             return result
 
         except stripe.error.StripeError as e:
@@ -132,6 +126,91 @@ class StripeService:
             logger.error(f"Unexpected webhook error: {e}")
             raise ValueError(f"Webhook error: {str(e)}")
 
+    async def get_products(self) -> List[Dict[str, Any]]:
+        """Get products from Stripe and return formatted data"""
+        try:
+            # Get products and prices from Stripe
+            products_response = stripe.Product.list(active=True)
+            print("134", "products_response", products_response)
+            prices_response = stripe.Price.list(active=True)
+
+            # Create a map of product_id to price info
+            price_map = {}
+            for price in prices_response.data:
+                if price.product not in price_map:
+                    price_map[price.product] = price
+
+            # Format products with their price information
+            formatted_products = []
+            for product in products_response.data:
+                price = price_map.get(product.id)
+                if price:
+                    formatted_products.append(
+                        {
+                            "id": product.id,
+                            "name": product.name,
+                            "description": product.description,
+                            "price_id": price.id,
+                            "price": price.unit_amount,
+                            "currency": price.currency,
+                        }
+                    )
+
+            logger.info(f"Retrieved {len(formatted_products)} products from Stripe")
+            return formatted_products
+
+        except stripe.error.StripeError as e:
+            logger.error(f"Error retrieving products: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Unexpected error retrieving products: {e}")
+            return []
+
+    async def get_product_by_id(self, product_id: str) -> Dict[str, Any]:
+        """Get a single product from Stripe by ID"""
+        try:
+            logger.info(f"Retrieving product by ID: {product_id}")
+
+            product = stripe.Product.retrieve(product_id)
+            prices = stripe.Price.list(product=product_id, active=True)
+
+            if prices.data:
+                price = prices.data[0]
+                return {
+                    "id": product.id,
+                    "name": product.name,
+                    "description": product.description,
+                    "price_id": price.id,
+                    "price": price.unit_amount,
+                    "currency": price.currency,
+                }
+            else:
+                logger.warning(f"No active prices found for product: {product_id}")
+                return None
+
+        except stripe.error.InvalidRequestError as e:
+            logger.error(f"Product not found: {product_id} - {e}")
+            return None
+        except stripe.error.StripeError as e:
+            logger.error(f"Error retrieving product: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error retrieving product: {e}")
+            return None
+
+    async def get_product_by_price_id(self, price_id: str) -> Dict[str, Any]:
+        """Get a single product from Stripe by price ID"""
+        try:
+            price = stripe.Price.retrieve(price_id)
+            product = stripe.Product.retrieve(price.product)
+            return product
+        except stripe.error.InvalidRequestError as e:
+            logger.error(f"Product not found: {price_id} - {e}")
+            return None
+        except stripe.error.StripeError as e:
+            logger.error(f"Error retrieving product: {e}")
+            return None
+
     async def get_price_info(self, price_id: str) -> Dict[str, Any]:
         """Get price details from Stripe"""
         try:
@@ -140,13 +219,15 @@ class StripeService:
                 "id": price.id,
                 "amount": price.unit_amount / 100,  # Convert from cents
                 "currency": price.currency,
-                "interval": price.recurring.interval if price.recurring else "one_time"
+                "interval": price.recurring.interval if price.recurring else "one_time",
             }
         except stripe.error.StripeError as e:
             logger.error(f"Error retrieving price: {e}")
             return None
 
-    def extract_subscription_id_from_invoice(self, invoice: Dict[str, Any]) -> Optional[str]:
+    def extract_subscription_id_from_invoice(
+        self, invoice: Dict[str, Any]
+    ) -> Optional[str]:
         """Extract subscription ID from invoice object with robust error handling
 
         Handles different invoice structures that may contain subscription_id in:
@@ -155,27 +236,27 @@ class StripeService:
         - invoice.lines.data[].subscription field
         """
         # Method 1: Direct access (previous versions)
-        subscription_id = invoice.get('subscription')
+        subscription_id = invoice.get("subscription")
         if subscription_id:
             logger.info(f"Found subscription_id directly: {subscription_id}")
             return subscription_id
 
         # Method 2: From parent.subscription_details (new structure)
-        parent = invoice.get('parent', {})
-        if parent and parent.get('type') == 'subscription_details':
-            subscription_details = parent.get('subscription_details', {})
-            subscription_id = subscription_details.get('subscription')
+        parent = invoice.get("parent", {})
+        if parent and parent.get("type") == "subscription_details":
+            subscription_details = parent.get("subscription_details", {})
+            subscription_id = subscription_details.get("subscription")
             if subscription_id:
                 logger.info(f"Found subscription_id in parent: {subscription_id}")
                 return subscription_id
 
         # Method 3: From lines (alternative)
-        lines = invoice.get('lines', {}).get('data', [])
+        lines = invoice.get("lines", {}).get("data", [])
         for line in lines:
-            parent_line = line.get('parent', {})
-            if parent_line.get('type') == 'subscription_item_details':
-                subscription_details = parent_line.get('subscription_item_details', {})
-                subscription_id = subscription_details.get('subscription')
+            parent_line = line.get("parent", {})
+            if parent_line.get("type") == "subscription_item_details":
+                subscription_details = parent_line.get("subscription_item_details", {})
+                subscription_id = subscription_details.get("subscription")
                 if subscription_id:
                     logger.info(f"Found subscription_id in line: {subscription_id}")
                     return subscription_id

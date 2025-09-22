@@ -1,6 +1,17 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text
-from sqlalchemy.orm import relationship
 from datetime import datetime
+
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
+from sqlalchemy.orm import relationship
+
 from app.core.database import Base
 
 
@@ -32,7 +43,9 @@ class Notification(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     subscription_id = Column(Integer, ForeignKey("subscriptions.id"), nullable=True)
-    type = Column(String, nullable=False)  # "renewal_reminder", "payment_failed", "subscription_canceled"
+    type = Column(
+        String, nullable=False
+    )  # "renewal_reminder", "payment_failed", "subscription_canceled"
     title = Column(String, nullable=False)
     message = Column(Text, nullable=False)
     amount = Column(Float, nullable=True)

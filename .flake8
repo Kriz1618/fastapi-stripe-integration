@@ -1,0 +1,38 @@
+[flake8]
+# Maximum line length
+max-line-length = 88
+
+# Ignore common non-critical errors
+ignore =
+    E203,
+    E501,
+    W503,
+    F401,
+    F403,
+    F405,
+    E402,
+    W291,
+    W292,
+    W293,
+    F841
+
+# Directories to exclude
+exclude =
+    .git,
+    __pycache__,
+    venv,
+    .venv,
+    env,
+    .env,
+    build,
+    dist,
+    *.egg-info,
+    migrations,
+    scripts
+
+# Maximum cyclomatic complexity
+max-complexity = 10
+
+# Show statistics
+statistics = True
+count = True

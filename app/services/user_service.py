@@ -1,9 +1,10 @@
-from sqlalchemy.orm import Session
-from typing import Optional, List
 import logging
+from typing import List, Optional
 
-from app.models.user import User
+from sqlalchemy.orm import Session
+
 from app.core.database import get_db
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,9 @@ class UserService:
             logger.error(f"Error getting user by email {email}: {e}")
             raise Exception(f"Database error: {str(e)}")
 
-    def get_user_by_stripe_customer_id(self, db: Session, stripe_customer_id: str) -> Optional[User]:
+    def get_user_by_stripe_customer_id(
+        self, db: Session, stripe_customer_id: str
+    ) -> Optional[User]:
         """
         Get user by Stripe customer ID
 
@@ -53,17 +56,25 @@ class UserService:
         """
         try:
             logger.info(f"Looking up user by Stripe customer ID: {stripe_customer_id}")
-            user = db.query(User).filter(User.stripe_customer_id == stripe_customer_id).first()
+            user = (
+                db.query(User)
+                .filter(User.stripe_customer_id == stripe_customer_id)
+                .first()
+            )
 
             if user:
                 logger.info(f"User found: {user.email}")
             else:
-                logger.info(f"No user found with Stripe customer ID: {stripe_customer_id}")
+                logger.info(
+                    f"No user found with Stripe customer ID: {stripe_customer_id}"
+                )
 
             return user
 
         except Exception as e:
-            logger.error(f"Error getting user by Stripe customer ID {stripe_customer_id}: {e}")
+            logger.error(
+                f"Error getting user by Stripe customer ID {stripe_customer_id}: {e}"
+            )
             raise Exception(f"Database error: {str(e)}")
 
     def get_user_by_id(self, db: Session, user_id: int) -> Optional[User]:
@@ -92,7 +103,9 @@ class UserService:
             logger.error(f"Error getting user by ID {user_id}: {e}")
             raise Exception(f"Database error: {str(e)}")
 
-    def create_user(self, db: Session, email: str, full_name: str, password: str) -> User:
+    def create_user(
+        self, db: Session, email: str, full_name: str, password: str
+    ) -> User:
         """
         Create a new user
 
@@ -112,10 +125,7 @@ class UserService:
             logger.info(f"Creating new user: {email}")
 
             # Create user instance
-            db_user = User(
-                email=email,
-                full_name=full_name
-            )
+            db_user = User(email=email, full_name=full_name)
 
             # Hash and set password
             db_user.set_password(password)
@@ -133,7 +143,9 @@ class UserService:
             db.rollback()
             raise Exception(f"Failed to create user: {str(e)}")
 
-    def register_user(self, db: Session, email: str, full_name: str, password: str) -> User:
+    def register_user(
+        self, db: Session, email: str, full_name: str, password: str
+    ) -> User:
         """
         Register a new user (includes validation)
 
@@ -192,7 +204,9 @@ class UserService:
             logger.error(f"Error getting all users: {e}")
             raise Exception(f"Failed to fetch users: {str(e)}")
 
-    def authenticate_user(self, db: Session, email: str, password: str) -> Optional[User]:
+    def authenticate_user(
+        self, db: Session, email: str, password: str
+    ) -> Optional[User]:
         """
         Authenticate user with email and password
 
@@ -251,7 +265,7 @@ class UserService:
                 return None
 
             # Update allowed fields
-            allowed_fields = ['full_name', 'is_active', 'stripe_customer_id']
+            allowed_fields = ["full_name", "is_active", "stripe_customer_id"]
             for field, value in kwargs.items():
                 if field in allowed_fields and hasattr(user, field):
                     setattr(user, field, value)

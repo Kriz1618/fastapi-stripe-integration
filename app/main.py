@@ -1,14 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import stripe_api, subscriptions_api, user_api
 from app.core.config import settings
-from app.core.database import engine, Base, create_tables
-from app.api import user_api
-from app.api import stripe_api
+from app.core.database import Base, create_tables, engine
+from app.models.subscription import Subscription
 
 # Import models so SQLAlchemy knows them
 from app.models.user import User
-from app.models.subscription import Subscription
 
 # Create tables on import
 create_tables()
@@ -18,7 +17,7 @@ app = FastAPI(
     title="FastAPI Stripe Integration",
     description="Complete FastAPI application with Stripe integration for subscription management",
     version="1.0.0",
-    debug=settings.debug
+    debug=settings.debug,
 )
 
 # Configure CORS
@@ -39,9 +38,10 @@ async def root():
         "version": "1.0.0",
         "docs": "/docs",
         "endpoints": {
-            "users": "/api/auth/",
-            "stripe": "/api/stripe/"
-        }
+            "users": "/api/users/",
+            "stripe": "/api/stripe/",
+            "subscriptions": "/api/subscriptions/",
+        },
     }
 
 
@@ -52,15 +52,12 @@ async def health():
 
 
 # Include routes
-app.include_router(user_api.router, prefix="/api/auth", tags=["authentication"])
-app.include_router(stripe_api.router, prefix="/api/stripe", tags=["stripe"])
+app.include_router(user_api.router, prefix="/api/users", tags=["Users"])
+app.include_router(stripe_api.router, prefix="/api/stripe", tags=["Stripe"])
+app.include_router(subscriptions_api.router, prefix="/api", tags=["Subscriptions"])
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

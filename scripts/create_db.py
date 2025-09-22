@@ -3,17 +3,18 @@
 Script to create and initialize the database tables
 """
 
-import sys
 import os
+import sys
 
 # Add the parent directory to the Python path so we can import our app modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy import create_engine
-from app.core.database import Base
+
 from app.core.config import settings
+from app.core.database import Base
+from app.models.subscription import Notification, Subscription
 from app.models.user import User
-from app.models.subscription import Subscription, Notification
 
 
 def create_database():
